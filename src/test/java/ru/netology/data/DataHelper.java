@@ -8,75 +8,98 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DataHelper {
-    private DataHelper() {
+    String url = "jdbc:mysql://localhost:3306/app";
+    String user = "app";
+    String password = "pass";
+
+    public DataHelper() {
     }
 
-    public static void cleanData() throws SQLException {
+    public void cleanData() throws SQLException {
         QueryRunner runner = new QueryRunner();
         val codes = "DELETE FROM auth_codes";
         val cards = "DELETE FROM cards";
         val users = "DELETE FROM users";
 
         try (
-                val conn = DriverManager.getConnection(
-                        "jdbc:mysql://localhost:3306/app", "app", "pass"
-                )
+                val conn = DriverManager.getConnection(url, user, password);
         ) {
             runner.update(conn, codes);
             runner.update(conn, cards);
             runner.update(conn, users);
+        } catch (SQLException ex) {
+            throw new RuntimeException(ex);
         }
     }
 
     @Value
-    public static class AuthInfo {
-        private String login;
-        private String password;
+    public class AuthInfo {
+        String login;
+        String password;
     }
 
-    public static AuthInfo getAuthInfo() {
+    public AuthInfo getAuthInfo() {
         return new AuthInfo("vasya", "qwerty123");
     }
 
-    public static AuthInfo getInvalidLogin() {
+    public AuthInfo getInvalidLogin() {
         return new AuthInfo("virusPetya", "virusPetya");
     }
 
-    public static AuthInfo getInvalidPassword() {
+    public AuthInfo getInvalidPassword() {
         return new AuthInfo("vasya", "asdfg");
     }
 
-    public static String invalidPassword() {
+    public String invalidPassword() {
         return "asdfg";
     }
 
     @Value
-    public static class VerificationCode {
+    public class VerificationCode {
         private String code;
     }
 
-    public static String getVerificationCodeForVasya() throws SQLException {
-        val verificationCode = "SELECT code FROM auth_codes WHERE created = (SELECT MAX(created) FROM auth_codes);";
-
+    public String getUserId() {
+        val getUserId = "SELECT id FROM users WHERE login = 'vasya';";
         try (
-                val conn = DriverManager.getConnection(
-                        "jdbc:mysql://localhost:3306/app", "app", "pass"
+                val connect = DriverManager.getConnection(url, user, password
                 );
-                val countStmt = conn.createStatement();
+                val createStmt = connect.createStatement();
         ) {
-            try (val rs = countStmt.executeQuery(verificationCode)) {
-                if (rs.next()) {
-                    // выборка значения по индексу столбца (нумерация с 1)
-                    val code = rs.getString("code");
-                    // TODO: использовать
-                    return code;
+            try (val resultSet = createStmt.executeQuery(getUserId)) {
+                if (resultSet.next()) {
+                    val userId = resultSet.getString(1);
+                    return userId;
                 }
             }
+        } catch (SQLException ex) {
+            throw new RuntimeException(ex);
         }
         return null;
     }
 
-    public static String getInvalidVerificationCode() {
+    public String getVerificationCode() {
+        val requestCode = "SELECT code FROM auth_codes WHERE user_id = ? ORDER BY created DESC LIMIT 1;";
+
+        try (
+                val connect = DriverManager.getConnection(url, user, password
+                );
+                val prepareStmt = connect.prepareStatement(requestCode);
+        ) {
+            prepareStmt.setString(1, getUserId());
+            try (val resultSet = prepareStmt.executeQuery()) {
+                if (resultSet.next()) {
+                    val code = resultSet.getString(1);
+                    return code;
+                }
+            }
+        } catch (SQLException ex) {
+            throw new RuntimeException(ex);
+        }
+        return null;
+    }
+
+    public String getInvalidVerificationCode() {
         return "54321";
     }
 }

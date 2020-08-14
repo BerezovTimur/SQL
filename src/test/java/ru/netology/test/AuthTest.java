@@ -4,6 +4,7 @@ import lombok.val;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import ru.netology.data.DataHelper;
+import ru.netology.page.AccountPage;
 import ru.netology.page.LoginPage;
 
 import java.sql.SQLException;
@@ -11,27 +12,31 @@ import java.sql.SQLException;
 import static com.codeborne.selenide.Selenide.open;
 
 public class AuthTest {
+    DataHelper dataHelper = new DataHelper();
 
     @AfterAll
     public static void cleanTables() throws SQLException {
-        DataHelper.cleanData();
+        DataHelper dataHelper = new DataHelper();
+        dataHelper.cleanData();
     }
 
     @Test
     void shouldEnterIfCorrectData() throws SQLException {
         open("http://localhost:9999");
         val loginPage = new LoginPage();
-        val authInfo = DataHelper.getAuthInfo();
+        val authInfo = dataHelper.getAuthInfo();
         val verificationPage = loginPage.validAuth(authInfo);
-        String verificationCode = DataHelper.getVerificationCodeForVasya();
-        verificationPage.validVerify(verificationCode);
+        val codeVerify = dataHelper.getVerificationCode();
+        verificationPage.validVerify(codeVerify);
+        val accountPage = new AccountPage();
+        accountPage.checkIfVisible();
     }
 
     @Test
     void shouldNotEnterIfNotCorrectData() {
         open("http://localhost:9999");
         val loginPage = new LoginPage();
-        val authInfo = DataHelper.getInvalidLogin();
+        val authInfo = dataHelper.getInvalidLogin();
         loginPage.invalidAuth(authInfo);
     }
 
@@ -39,7 +44,7 @@ public class AuthTest {
     void shouldNotEnterIfInvalidPassword() {
         open("http://localhost:9999");
         val loginPage = new LoginPage();
-        val authInfo = DataHelper.getInvalidPassword();
+        val authInfo = dataHelper.getInvalidPassword();
         loginPage.invalidAuth(authInfo);
     }
 
@@ -47,9 +52,9 @@ public class AuthTest {
     void shouldNotEnterIfInvalidCode() throws SQLException {
         open("http://localhost:9999");
         val loginPage = new LoginPage();
-        val authInfo = DataHelper.getAuthInfo();
+        val authInfo = dataHelper.getAuthInfo();
         val verificationPage = loginPage.validAuth(authInfo);
-        val verificationCode = DataHelper.getInvalidVerificationCode();
+        val verificationCode = dataHelper.getInvalidVerificationCode();
         verificationPage.invalidVerify(verificationCode);
     }
 
@@ -57,9 +62,9 @@ public class AuthTest {
     void shouldBlockWhenThreeInvalidPasswords() {
         open("http://localhost:9999");
         val loginPage = new LoginPage();
-        val authInfo = DataHelper.getInvalidPassword();
+        val authInfo = dataHelper.getInvalidPassword();
         loginPage.invalidAuth(authInfo);
-        val invalidPassword = DataHelper.invalidPassword();
+        val invalidPassword = dataHelper.invalidPassword();
         loginPage.sendInvalidPassword(invalidPassword);
         loginPage.sendInvalidPasswordThirdTime(invalidPassword);
     }
